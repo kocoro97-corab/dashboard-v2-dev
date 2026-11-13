@@ -1,0 +1,37 @@
+/* ===== data.js: 공개 지수 기본 설정(DEF) =====
+   개인 보유목록은 비공개 GAS API에서 로그인 후 불러옵니다.
+   H 컬럼: [계좌, 종목명, 수량, 평단가, 현재가(기본), 평가손익(기본), 수익률(기본), 야후/네이버 코드, TradingView 심볼] */
+/* 자동 갱신 없음: 최초 진입 시 1회 + 화면의 ↻ 버튼을 누를 때만 갱신됨 */
+
+/* 다음금융 선물 월물 코드 (만기 때 새 코드로 교체: finance.daum.net 선물 페이지 > 개발자도구에서 확인) */
+const FUT={k3:'KR4A016C0004'};
+
+/* 나무증권(NH PLUG) 선물: 카드 id → 상품 앞부분 (A01=코스피200 선물, A06=코스닥150 선물). 월물 코드는 서버가 자동 계산.
+   나무증권이 실패하면 코스피200은 위 다음금융 코드로, 코스닥150은 직접 입력으로 대체됨 */
+const NHF={k3:'A01',k4:'A06'};
+
+const DEF={
+KR:[
+  {id:'k1',name:'코스피',y:'^KS11',tv:'KRX:KOSPI',vis:1},
+  {id:'k2',name:'코스닥',y:'^KQ11',tv:'KRX:KOSDAQ',vis:1},
+  {id:'k3',name:'코스피200 선물',fut:FUT.k3,vis:1},
+  {id:'k4',name:'코스닥150 선물',m:1,vis:1},
+  {id:'k5',name:'S&P 500',y:'^GSPC',tv:'FOREXCOM:SPXUSD',vis:1},
+  {id:'k6',name:'나스닥',y:'^IXIC',tv:'FOREXCOM:NSXUSD',vis:1},
+  {id:'k7',name:'달러/원',y:'KRW=X',tv:'FX_IDC:USDKRW',t:'fx',vis:1},
+  {id:'k8',name:'외국인 수급(코스피)',inv:'foreign',vis:1},
+  {id:'k9',name:'기관 수급(코스피)',inv:'inst',vis:1}
+],
+US:[
+  {id:'u1',name:'S&P 500',y:'^GSPC',tv:'FOREXCOM:SPXUSD',vis:1},
+  {id:'u2',name:'나스닥',y:'^IXIC',tv:'FOREXCOM:NSXUSD',vis:1},
+  {id:'u3',name:'다우존스',y:'^DJI',tv:'FOREXCOM:DJI',vis:1},
+  {id:'u4',name:'나스닥 선물',y:'NQ=F',tv:'CME_MINI:NQ1!',vis:1},
+  {id:'u5',name:'필라델피아 반도체',y:'^SOX',tv:'NASDAQ:SOX',vis:1},
+  {id:'u6',name:'VIX',y:'^VIX',tv:'TVC:VIX',vis:1},
+  {id:'u7',name:'미국 10년물 금리',y:'^TNX',tv:'TVC:US10Y',t:'yld',vis:1},
+  {id:'u8',name:'WTI 유가',y:'CL=F',tv:'TVC:USOIL',vis:1}
+]};
+
+// Private holdings are loaded from the administrator-only GAS API after login.
+const H=[];
