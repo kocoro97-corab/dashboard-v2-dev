@@ -1,1 +1,1 @@
-{"myinvestDevelopmentOnly": true, "authOnly": true, "screenInspection": true, "sourceBranch": "feat/nh-integration-v2", "sourceCommit": "329e1af7279e22fa0a65428dc92cdda853379e08"}
+{"myinvestDevelopmentOnly": true, "authOnly": false, "publicMarketCapable": true, "nhAccountQueries": false, "storageWrites": false, "screenInspection": true, "sourceBranch": "feat/nh-integration-v2", "sourceCommit": "597a314df104a921af505c3a87334328b6a13167"}
