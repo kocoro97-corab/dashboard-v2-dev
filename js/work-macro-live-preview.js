@@ -777,7 +777,7 @@ const modules = {};
   'use strict';
   const expected = 'https://kocoro97-corab.github.io';
   const page = /^\/dashboard-v2-dev\/(?:index\.html)?$/;
-  if (location.origin !== expected || !page.test(location.pathname) || location.search || location.hash) {
+  if (location.origin !== expected || !page.test(location.pathname) || location.search || (location.hash && !(window.AppRouter && AppRouter.validHash(location.hash)))) {
     console.info('MY INVEST V2 개발 페이지에서 실행하세요.');
     return;
   }
@@ -847,6 +847,7 @@ const modules = {};
   observer.observe(container, {subtree: true, attributes: true, attributeFilter: ['disabled']});
   open.disabled = !canOpen();
   close.addEventListener('click', clear);
+  container.addEventListener('dashboard:pageleave', clear);
   open.addEventListener('click', () => {
     const config = window.MYINVEST_TRANSPORT_CONFIG;
     scopeToken = LS('invest_session_token');
