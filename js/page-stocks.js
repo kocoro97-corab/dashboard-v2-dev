@@ -1,9 +1,61 @@
-(function(){
-  'use strict';const {node,note,button}=DashboardPages;
-  DashboardPages.register('stocks',()=>DashboardPages.legacy({ids:['chartsec'],
-    build(view){
-      const form=node('form',null,'shell-form');form.dataset.shellControl='true';const label=node('label','국내 6자리 코드 또는 해외 티커'),input=node('input');input.type='text';input.maxLength=20;input.id='stockSearch';input.placeholder='005930 또는 AAPL';label.append(input);const submit=button('차트 열기',()=>{});submit.type='submit';const status=node('p','', 'mini');form.append(label,submit,status);
-      form.addEventListener('submit',event=>{event.preventDefault();const symbol=input.value.trim().toUpperCase();if(!/^(?:[0-9]{6}|[A-Z][A-Z0-9.=-]{0,14})$/.test(symbol)){status.textContent='국내 6자리 코드 또는 지원되는 해외 티커를 입력하세요.';return}status.textContent='기존 공개 시세 어댑터로 조회합니다.';showQ(symbol,symbol,'',1)});
-      view.prepend(form);view.append(note('기술적 분석·기업 기본정보·관심종목 등록 전용 모듈은 미연결입니다. 거래량·거래대금이 없는 응답은 추정하지 않습니다.'));
-    },refresh:async(ctx,force)=>{await ctx.chart(force);drawQ()}}));
-})();
+(function(root){
+'use strict';
+// Stock analysis V2: public OHLCV only. Never submits orders or modifies account records.
+const WATCH_KEY='myinvest_sector_watch_v2';
+const STRATEGY_KEY='myinvest_strategy_selection_v2';
+const SELECT_KEY='myinvest_stock_selection_v2';
+const readSelection=()=>{try{const x=JSON.parse(sessionStorage.getItem(SELECT_KEY));return x&&valid(x.symbol)&&Date.now()-x.at<3600000?x:null}catch{return null}};
+const clearSelection=()=>{try{sessionStorage.removeItem(SELECT_KEY)}catch{}};
+const valid=s=>/^(?:[0-9]{6}|[A-Z][A-Z0-9.=-]{0,14})$/.test(s);
+const el=(tag,text,cls)=>{const e=document.createElement(tag);if(text!==undefined)e.textContent=text;if(cls)e.className=cls;return e};
+const btn=(text,fn)=>{const b=el('button',text);b.type='button';b.addEventListener('click',fn);return b};
+const fmt=n=>typeof n==='number'&&Number.isFinite(n)?n.toLocaleString('ko-KR',{maximumFractionDigits:2}):'미확인';
+const average=(a,n)=>a.length<n?null:a.slice(-n).reduce((s,x)=>s+x,0)/n;
+function calculate(bars){
+ const closes=bars.map(x=>x.c),last=closes.at(-1),prior=closes.at(-2),ma5=average(closes,5),ma20=average(closes,20),ma60=average(closes,60);
+ const gains=[],losses=[];for(let i=1;i<closes.length;i++){const d=closes[i]-closes[i-1];gains.push(Math.max(0,d));losses.push(Math.max(0,-d))}
+ const g=average(gains,14),l=average(losses,14),rsi=g===null||l===null?null:l===0?(g===0?50:100):100-100/(1+g/l);
+ const previous=bars.slice(-21,-1),high20=previous.length>=20?Math.max(...previous.map(x=>x.h)):null,low20=previous.length>=20?Math.min(...previous.map(x=>x.l)):null;
+ const vol=bars.slice(-21,-1).map(x=>x.v);const hasVol=vol.length===20&&vol.every(x=>typeof x==='number'&&Number.isFinite(x)&&x>=0)&&typeof bars.at(-1).v==='number'&&bars.at(-1).v>=0;
+ const vavg=hasVol?average(vol,20):null,volumeRatio=vavg>0?bars.at(-1).v/vavg:null;
+ const change=prior>0?(last/prior-1)*100:null;
+ return {last,change,ma5,ma20,ma60,rsi,high20,low20,volumeRatio,trend:ma20===null?'추세 판단 대기':last>ma20&&ma5>ma20?'상승 추세 관찰':last<ma20&&ma5<ma20?'하락 추세 관찰':'혼조 · 방향 확인 필요'};
+}
+function watchRead(){try{const a=JSON.parse(localStorage.getItem(WATCH_KEY));return Array.isArray(a)?a.filter(x=>typeof x==='string'&&valid(x)).slice(0,100):[]}catch{return []}}
+function watchToggle(symbol){const list=watchRead(),i=list.indexOf(symbol);if(i>=0)list.splice(i,1);else list.push(symbol);try{localStorage.setItem(WATCH_KEY,JSON.stringify(list.slice(0,100)));return i<0}catch{return false}}
+function create(){
+ let ctxRef=null,unsubscribe=null,holdingArea=null,lastAnalysis=null;
+ function holdingsFor(sym){let snap;try{snap=ctxRef?.snapshot()}catch{return {status:'unavailable',rows:[]}}if(!snap||!Array.isArray(snap.details)||!Array.isArray(snap.result?.rows)||snap.details.length!==snap.result.rows.length)return {status:'unavailable',rows:[]};const market=/^\d{6}$/.test(sym)?'domestic':'overseas';const matched=[];let unresolved=0;for(let i=0;i<snap.details.length;i++){const h=snap.details[i],a=snap.result.rows[i];if(String(h?.code||'').trim().toUpperCase()!==sym)continue;if(h.market!==market||h.draft||!a?.identity||a.issues?.includes('IDENTITY_UNKNOWN')||!Number.isFinite(h.quantity)||h.quantity<=0||!Number.isFinite(h.avgPrice)||h.avgPrice<=0||!((market==='domestic'&&h.currency==='KRW')||(market==='overseas'&&typeof h.currency==='string'&&/^[A-Z]{3}$/.test(h.currency)&&h.currency!=='KRW'))){unresolved++;continue}matched.push({h,a})}return {status:matched.length?'verified':unresolved?'unverified':'unavailable',rows:matched,unresolved}}
+ function renderHolding(){if(!active||!holdingArea||!symbol)return;holdingArea.replaceChildren();const found=holdingsFor(symbol);holdingArea.append(el('h3','내 보유종목 · 계좌별 매입단가 분석'));if(!found.rows.length){holdingArea.append(el('p','검증된 개별 계좌 보유정보 미확인 · 미보유를 의미하지 않습니다.','sva-muted'));return}if(found.unresolved)holdingArea.append(el('p','일부 계좌는 식별자·통화·매입단가가 미확인되어 제외했습니다.','sva-muted'));for(const {h,a} of found.rows){const card=el('section',undefined,'sva-card'),ccy=h.currency,qty=h.quantity,avg=h.avgPrice;card.append(el('h4',(h.broker||'증권사 미확인')+' · '+(h.accountLabel||'계좌명 미확인')),el('p','보유 '+fmt(qty)+'주 · 평균매입가 '+fmt(avg)+' '+ccy+' · 매입원가 '+fmt(qty*avg)+' '+ccy));if(Number.isFinite(h.currentPrice)&&h.currentPrice>0){card.append(el('p','계좌 관측 시세 '+fmt(h.currentPrice)+' '+ccy+' · 평단 대비 '+((h.currentPrice/avg-1)*100).toFixed(2)+'% · '+(h.observedAt||'시각 미확인'),'sva-muted'))}else card.append(el('p','계좌 관측 시세 미확인','sva-muted'));if(Number.isFinite(a.returnPct))card.append(el('p','계좌 평가 기준 수익률 '+a.returnPct.toFixed(2)+'% · 원천 평가금액 기준','sva-muted'));if(lastAnalysis?.symbol===symbol){const {m,barTime,stale}=lastAnalysis,rate=(m.last/avg-1)*100,profit=(m.last-avg)*qty;card.append(el('p','차트 마지막 종가 기준 '+rate.toFixed(2)+'% · 평가차익 '+fmt(profit)+' '+ccy+' · '+new Date(barTime).toLocaleString('ko-KR')+(stale?' · 오래된 봉':''),'sva-muted'));const notes=[];if(m.ma20!==null)notes.push(m.last<m.ma20?'20일선 하회: 계좌별 이익 보전·손실 관리 기준 점검':'20일선 상회: 계좌별 추세 유지 및 이탈 기준 점검');notes.push(rate<0?'손실 구간: 평단 회복만을 이유로 물타기하지 않고 손절 조건 검토':rate>0?'이익 구간: 계좌별 분할익절·추적손절 조건 검토':'평단 부근: 손익분기점보다 추세·위험한도 우선');const list=el('ul');notes.forEach(t=>list.append(el('li',t)));card.append(list)}holdingArea.append(card)}holdingArea.append(el('p','각 계좌의 매입단가를 유지합니다. 통합 평균매입가는 개별 계좌 판단에 사용하지 않습니다. 동일 통화·시장 검증과 관측 시각 확인이 필요하며 실시간 수익률은 아닙니다.','sva-muted'))}
+ const onSelection=()=>{if(!active)return;const selection=readSelection();if(selection){clearSelection();selectStock(selection.symbol,selection)}};
+ const legacy=DashboardPages.legacy({ids:['chartsec'],refresh:async(ctx,force)=>{await ctx.chart(force);if(typeof drawQ==='function')drawQ()}});
+ let view,formInput,status,results,contextLine,mode='swing',symbol='',active=false,sequence=0,selectedContext=null;
+ const css='.sva{margin-bottom:18px}.sva-form{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.sva-form input{padding:8px;min-width:180px;flex:1}.sva button{cursor:pointer}.sva-tabs{display:flex;gap:8px;margin:10px 0}.sva-tabs button{padding:8px 12px;border-radius:7px;border:1px solid #465775;background:#172238;color:#e7eef9}.sva-tabs button[aria-pressed="true"]{background:#264365;border-color:#72b5ff}.sva-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.sva-card{background:#172238;border:1px solid #344158;color:#e7eef9;border-radius:9px;padding:12px}.sva-muted{font-size:12px;color:#b6c5d9}.sva-alert{border:1px solid #465775;border-radius:8px;padding:10px;margin:8px 0}@media(max-width:550px){.sva-grid{grid-template-columns:1fr}}';
+ const metric=(name,value)=>{const c=el('div',undefined,'sva-card');c.append(el('small',name),el('h3',value));return c};
+ function display(bars,source,sym,stamp){if(!active||symbol!==sym)return;const m=calculate(bars),last=bars.at(-1),stale=Date.now()-last.t>4*86400000;
+ lastAnalysis={symbol:sym,m,barTime:last.t,stale};renderHolding();results.replaceChildren();results.append(el('h3',sym+' · 기술적 분석'),el('p','원천: '+source+' · 수신: '+stamp+' · 마지막 가격 봉: '+new Date(last.t).toLocaleString('ko-KR')+(stale?' · 오래된 데이터 가능':''),'sva-muted'));
+ const grid=el('div',undefined,'sva-grid');[['종가',fmt(m.last)],['직전 봉 대비',m.change===null?'미확인':m.change.toFixed(2)+'%'],['MA5 / MA20',fmt(m.ma5)+' / '+fmt(m.ma20)],['MA60',fmt(m.ma60)],['RSI(14)',fmt(m.rsi)],['거래량 / 직전 20봉 평균',m.volumeRatio===null?'미확인':m.volumeRatio.toFixed(2)+'배'],['직전 20봉 고점',fmt(m.high20)],['직전 20봉 저점',fmt(m.low20)]].forEach(([k,v])=>grid.append(metric(k,v)));results.append(grid);
+ results.append(el('h3','시장 해석 · '+m.trend));
+ const info=mode==='day'?'단타: 이 일봉 자료만으로는 VWAP·체결강도·분봉 돌파를 검증할 수 없습니다. 실시간 진입 신호를 확정하지 않습니다.':'스윙: 일봉 추세·20봉 고저점을 관찰합니다. 실적·기관 수급·뉴스 촉매는 별도 검증이 필요합니다.';
+ results.append(el('p',info,'sva-alert'));
+ const triggers=[];if(m.high20!==null)triggers.push('상방 관찰 조건: 직전 20봉 고점 '+fmt(m.high20)+' 돌파 후 종가 유지 여부');if(m.ma20!==null)triggers.push('추세 무효화 관찰: 20봉 평균 '+fmt(m.ma20)+' 이탈 여부');if(m.low20!==null)triggers.push('하방 위험 기준: 직전 20봉 저점 '+fmt(m.low20)+' 이탈 여부');
+ if(m.rsi!==null)triggers.push('RSI '+fmt(m.rsi)+(m.rsi>=70?' · 과열 구간 주의':m.rsi<=30?' · 약세/과매도 구간 주의':' · 중립 범위'));
+ const ul=el('ul');triggers.forEach(t=>ul.append(el('li',t)));results.append(ul);
+ results.append(el('p','판단 근거: '+bars.length+'개 일봉 OHLCV · 이동평균/RSI 단순 계산. 신뢰도 한계: 수정주가·분봉·호가·기관/외국인 수급·실적·뉴스 미검증. AI 예측 확률 또는 매수 추천이 아닙니다.','sva-muted'));
+ const strategyBtn=btn('이 종목으로 투자전략 보기',()=>{try{sessionStorage.setItem(STRATEGY_KEY,JSON.stringify({symbol:sym,name:selectedContext?.name||sym,theme:selectedContext?.theme||'',mode,at:Date.now()}));root.location.hash='#/strategy'}catch{status.textContent='전략 선택 정보를 전달하지 못했습니다.'}});results.append(strategyBtn);
+ const watchBtn=btn(watchRead().includes(sym)?'관심종목 해제':'관심종목 등록',()=>{const added=watchToggle(sym);watchBtn.textContent=added?'관심종목 해제':'관심종목 등록'});results.append(watchBtn);
+ }
+ async function analyze(sym){symbol=sym;lastAnalysis=null;renderHolding();const seq=++sequence;results.replaceChildren();status.textContent='실제 일봉 데이터 조회 중 · '+sym;
+ const candidates=/^\d{6}$/.test(sym)?[sym+'.KS',sym+'.KQ']:[sym];let bars=null,source='';
+ for(const y of candidates){try{if(typeof getJSON!=='function')break;const j=await getJSON('https://query1.finance.yahoo.com/v8/finance/chart/'+encodeURIComponent(y)+'?interval=1d&range=1y');if(seq!==sequence||!active)return;const r=j?.chart?.result?.[0],q=r?.indicators?.quote?.[0];if(!r?.timestamp||!q)continue;const parsed=r.timestamp.map((t,i)=>({t:t*1000,o:q.open?.[i],h:q.high?.[i],l:q.low?.[i],c:q.close?.[i],v:q.volume?.[i]})).filter(b=>[b.o,b.h,b.l,b.c].every(Number.isFinite)&&b.t>0);if(parsed.length>=21){bars=parsed;source='Yahoo Finance ('+y+')';break}}catch{}}
+ if(seq!==sequence||!active)return;
+ if(!bars){status.textContent='분석 불가 · 검증된 일봉 데이터 부족 또는 공용 시세 중계 미연결';results.replaceChildren(el('p','실제 OHLCV 21봉 이상이 필요합니다. 종목 코드는 상장 종목 원천 확인 후 사용하세요. 가짜 가격이나 점수를 생성하지 않습니다.','sva-alert'));return}
+ status.textContent='분석 완료 · 일봉 '+bars.length+'개 · '+new Date().toLocaleString('ko-KR');display(bars,source,sym,new Date().toLocaleString('ko-KR'));
+ }
+ function selectStock(sym,options={}){if(!valid(sym))return;selectedContext=options;formInput.value=sym;mode=options.mode==='day'?'day':options.mode==='swing'?'swing':mode;view.querySelectorAll('.sva-tabs button').forEach((b,i)=>b.setAttribute('aria-pressed',String(i===(mode==='day'?0:1))));contextLine.textContent=options.theme?'선택 경로: 섹터·테마 > '+options.theme+' > '+(options.name||sym):'선택 경로: 직접 종목 검색';if(typeof showQ==='function')showQ(sym,options.name||sym,'',1);void analyze(sym)}
+ function mount(container,ctx){active=true;ctxRef=ctx;unsubscribe=ctx.subscribe?.(()=>renderHolding());root.addEventListener('myinvest:stock-selection',onSelection);view=el('section',undefined,'sva');const style=el('style');style.textContent=css;view.append(style,el('h2','AI 종목 분석 V2'),el('p','실제 시세 기반 기술적 분석 · 데이터 미확인 항목은 추정하지 않음','sva-muted'));const form=el('form',undefined,'sva-form');formInput=el('input');formInput.id='stockSearch';formInput.placeholder='005930 또는 AAPL';formInput.maxLength=20;formInput.setAttribute('aria-label','국내 6자리 코드 또는 미국 티커');const submit=btn('종목 분석',()=>{});submit.type='submit';form.append(formInput,submit);form.addEventListener('submit',e=>{e.preventDefault();const s=formInput.value.trim().toUpperCase();if(!valid(s)){status.textContent='국내 6자리 코드 또는 영문 티커를 입력하세요.';return}selectStock(s,{})});view.append(form);const tabs=el('div',undefined,'sva-tabs');[['day','단타'],['swing','스윙']].forEach(([m,label])=>{const b=btn(label,()=>{mode=m;tabs.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));if(symbol)void analyze(symbol)});b.setAttribute('aria-pressed',String(mode===m));tabs.append(b)});view.append(tabs);contextLine=el('p','선택 경로: 직접 종목 검색','sva-muted');view.append(contextLine);status=el('p','종목을 입력하면 실제 일봉을 조회합니다.','sva-muted');results=el('div');holdingArea=el('section',undefined,'sva-alert');view.append(status,holdingArea,results);legacy.mount(container,ctx);container.prepend(view);const selection=readSelection();if(selection){clearSelection();selectStock(selection.symbol,selection)}}
+ return {mount,selectStock,refresh:(ctx,force)=>legacy.refresh(ctx,force),unmount:()=>{active=false;unsubscribe?.();unsubscribe=null;ctxRef=null;lastAnalysis=null;root.removeEventListener('myinvest:stock-selection',onSelection);sequence++;view?.remove();legacy.unmount()},getStatus:()=>({status:active?'ready':'unmounted',symbol,mode})};
+}
+DashboardPages.register('stocks',create);
+root.MYInvestStockSelection=Object.freeze({open(symbol,options={}){const s=String(symbol||'').trim().toUpperCase();if(!valid(s))return false;const payload={symbol:s,name:String(options.name||'').slice(0,80),theme:String(options.theme||'').slice(0,80),mode:options.mode==='day'?'day':'swing',at:Date.now()};try{sessionStorage.setItem(SELECT_KEY,JSON.stringify(payload))}catch{return false}if(root.location.hash==='#/stocks')root.dispatchEvent(new Event('myinvest:stock-selection'));else root.location.hash='#/stocks';return true}});
+})(window);
