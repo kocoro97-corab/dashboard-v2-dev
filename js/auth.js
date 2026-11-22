@@ -108,7 +108,7 @@ async function approveUser(targetId){
   }catch(e){alert('승인 처리 중 오류 발생')}
 }
 
-const SESSION_MS=300000;   // 5분. 절대 시각 기준이라 화면 꺼짐·백그라운드에서도 정확히 만료
+const SESSION_MS=3600000; // Development-only: one hour of user inactivity; background checks do not reset it.
 let sessionInterval=null,sessionBound=false,lastWrite=0;
 const lastActive=()=>Number(AUTH_STORAGE.getItem('invest_last_active'))||0;
 function touchActive(force){
