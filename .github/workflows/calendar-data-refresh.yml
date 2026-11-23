@@ -14,7 +14,7 @@ jobs:
     if: github.repository == 'kocoro97-corab/dashboard-v2-dev' && github.ref == 'refs/heads/dev-pages'
     runs-on: ubuntu-24.04
     env:
-      CALENDAR_SOURCE_SHA: 9055aaa7e52186dc47fc66d21c23d921d4df0ce6
+      CALENDAR_SOURCE_SHA: 16c85ab33e2ec94e57ccc530240d15c96a9e7d8b
     steps:
       - name: Read pinned, verified public collectors
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
