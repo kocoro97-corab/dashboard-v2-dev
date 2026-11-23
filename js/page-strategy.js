@@ -16,7 +16,7 @@ function plan({capital,riskPct,entry,stop,target,allocation}){
 }
 function create(){
  const legacy=DashboardPages.legacy({ids:['strategySection'],intro:'기존 규칙 기반 시장 시나리오 · 실제 주문 없음',refresh(){generateScenario()}});
- let view,head,output,holdingPanel,conditional,selector=null,unsubscribe=null,requestVersion=0,latestData=null,lastSelectionKey='',inputs={},mode='swing',active=false,ctxRef=null;
+ let view,head,output,holdingPanel,conditional,selector=null,unsubscribe=null,requestVersion=0,latestData=null,lastSelectionKey='',inputs={},mode='swing',active=false,ctxRef=null,earningsRedraw=()=>{};
  let compareDisclosure=null,compareHost=null,compareInstance=null;
 
  const css='.str4{margin-bottom:18px;color:inherit}.str4 button{cursor:pointer}.str4-nav,.str4-modes{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}.str4-nav button,.str4-modes button{border:1px solid #465775;background:#172238;color:#e7eef9;border-radius:7px;padding:8px 12px}.str4-modes button[aria-pressed="true"]{background:#264365;border-color:#72b5ff}.str4-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.str4-field{display:flex;flex-direction:column;gap:5px;padding:10px;border:1px solid #344158;border-radius:9px;background:#172238;color:#e7eef9}.str4-field input{min-width:0;padding:9px;border-radius:6px;border:1px solid #52637c;background:#101a2a;color:#fff}.str4-output{padding:12px;border:1px solid #465775;border-radius:9px;margin-top:12px}.str4-muted{font-size:12px;color:#b6c5d9}.str4-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.str4-cards div{padding:10px;border-radius:8px;background:#172238;color:#e7eef9}.str4-cards strong{display:block;font-size:17px;margin-top:5px}@media(max-width:550px){.str4-grid,.str4-cards{grid-template-columns:1fr}}';
@@ -86,8 +86,67 @@ function create(){
    compareHost.replaceChildren(make('p','비교 계산기 연결 실패 · 기존 투자전략 기능은 계속 사용할 수 있습니다.','str4-muted'));
   }
  }
- function mount(container,ctx){active=true;ctxRef=ctx;view=make('section',undefined,'str4');const style=make('style');style.textContent=css+'.str4-compare-disclosure{margin-top:14px;border:1px solid #465775;border-radius:10px;padding:10px;background:#112039;min-width:0}.str4-compare-disclosure>summary{font-size:14px;font-weight:700;cursor:pointer;padding:6px;min-height:32px}.str4-compare-disclosure[open]>summary{margin-bottom:12px}.str4-compare-host{min-width:0;max-width:100%}';view.append(style,make('h2','단타·스윙 투자전략 V2'),make('p','검증된 일봉의 조건부 시나리오와 직접 입력한 매매계획의 위험한도를 구분합니다.','str4-muted'));head=make('div',undefined,'str4-nav');view.append(head);renderHeader();selector=root.InvestWorkflow.selector({ctx,searchId:'strategyStockSearch',onSelect:selected=>{mode=selected.mode;renderHeader();void loadStrategy()}});view.append(selector.element);conditional=make('section',undefined,'str4-output workflow-conditional');view.append(conditional);const modes=make('div',undefined,'str4-modes');const checklist=make('div');for(const [value,label] of [['day','단타'],['swing','스윙']]){const b=button(label,()=>{mode=value;const selection=readSelection();if(selection){root.InvestWorkflow.select(selection.symbol,{...selection,mode});void loadStrategy()}for(const x of modes.querySelectorAll('button'))x.setAttribute('aria-pressed',String(x===b));drawChecklist()});b.dataset.mode=value;modes.append(b)}view.append(modes,checklist);
- function drawChecklist(){for(const b of modes.querySelectorAll('button'))b.setAttribute('aria-pressed',String(b.dataset.mode===mode));checklist.replaceChildren(make('h3',mode==='day'?'단타 진입 전 점검':'스윙 진입 전 점검'));const list=make('ul');(mode==='day'?['시장 방향 및 해당 테마 당일 강도 확인','분봉·VWAP·거래량과 호가 데이터 확인 (현재 미연결)','진입·손절·목표·1회 손실한도 사전 설정','뉴스 급변·갭 리스크 및 유동성 점검']:['시장 국면과 테마 추세의 지속성 확인','일봉 MA20·MA60 및 최근 고저점 점검','실적 발표·주요 뉴스·기관 수급 확인 (현재 미연결)','2~3주 보유 가정 시 갭·오버나이트 위험 반영']).forEach(t=>list.append(make('li',t)));checklist.append(list)}drawChecklist();
+ function mount(container,ctx){active=true;ctxRef=ctx;view=make('section',undefined,'str4');const style=make('style');style.textContent=css+'.str4-compare-disclosure{margin-top:14px;border:1px solid #465775;border-radius:10px;padding:10px;background:#112039;min-width:0}.str4-compare-disclosure>summary{font-size:14px;font-weight:700;cursor:pointer;padding:6px;min-height:32px}.str4-compare-disclosure[open]>summary{margin-bottom:12px}.str4-compare-host{min-width:0;max-width:100%}';view.append(style,make('h2','단타·스윙 투자전략 V2'),make('p','검증된 일봉의 조건부 시나리오와 직접 입력한 매매계획의 위험한도를 구분합니다.','str4-muted'));const earningsPanel=make('section',undefined,'str4-output');
+earningsPanel.setAttribute('aria-label','보유·관심종목 실적 발표 위험 점검');view.append(earningsPanel);
+function drawEarningsRisk(){
+ earningsPanel.replaceChildren(make('h3','기업 실적 · 향후 21일 이벤트 위험'));
+ const svc=root.MYInvestEarningsCalendar,records=svc?.current(),s=readSelection(),selected=s&&valid(s.symbol)?[s.symbol]:[];
+ let holdings=[];
+ try{const snap=ctxRef?.snapshot();if(Array.isArray(snap?.details)&&Array.isArray(snap?.result?.rows)){holdings=snap.details.filter((h,i)=>h&&!h.draft&&Number.isFinite(h.quantity)&&h.quantity>0&&snap.result.rows[i]?.identity&&!snap.result.rows[i]?.issues?.includes('IDENTITY_UNKNOWN')).map(h=>String(h.code||'').toUpperCase()).filter(valid)}}catch{}
+ let watch=[];try{const w=JSON.parse(localStorage.getItem('myinvest_sector_watch_v2')||'[]');watch=Array.isArray(w)?w.filter(valid).slice(0,100):[]}catch{}
+ if(records?.status!=='ready'){
+  earningsPanel.append(make('p','공식 실적 발표 일정 자료가 연결되지 않았습니다. 날짜가 없다는 이유로 실적 위험이 낮다고 판단하지 마세요.','str4-muted'));return;
+ }
+ const relevant=svc.matches({holdings,watch,selected});
+ const today=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Seoul',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());
+ const part=Object.fromEntries(today.filter(x=>x.type!=='literal').map(x=>[x.type,x.value]));
+ const start=part.year+'-'+part.month+'-'+part.day, end=new Date(Date.parse(start+'T00:00:00Z')+21*86400000).toISOString().slice(0,10);
+ const upcoming=relevant.filter(x=>x.date>=start&&x.date<=end).sort((a,b)=>a.date.localeCompare(b.date)).slice(0,12);
+ if(!upcoming.length){earningsPanel.append(make('p','현재 수신된 일정에서 선택·보유·관심종목의 발표 예정일이 확인되지 않았습니다. 발표 미예정 또는 안전을 뜻하지 않습니다.','str4-muted'));return}
+ for(const item of upcoming){
+  const tag=item.relation==='holding'?'보유':item.relation==='watch'?'관심':'선택';
+  const status=item.dateStatus==='confirmed'?'● 확정':'◇ 예상·미확정';
+  const risk=svc.assessRisk(item,{mode,now:Date.now()});
+  const card=make('p',status+' · '+item.date+' · '+item.symbol+' ('+tag+') · '+item.name+' · '+item.period+' · '+risk.label,'str4-muted');
+  const link=make('a','공식 근거 ↗');link.href=item.sourceUrl;link.target='_blank';link.rel='noopener noreferrer';card.append(make('span',' · '),link);earningsPanel.append(card);
+ }
+ earningsPanel.append(make('p','실적 발표 전후에는 갭·변동성 위험이 커질 수 있습니다. 이 목록은 발표일의 근거 표시이며 실적 수치·주가 반응·매매 신호를 생성하지 않습니다.','str4-muted'));
+}
+earningsRedraw=drawEarningsRisk;
+drawEarningsRisk();
+root.MYInvestEarningsCalendar?.refresh().then(()=>{if(active&&view?.isConnected)drawEarningsRisk()}).catch(()=>{});
+const eventPanel=make('section',undefined,'str4-output');
+eventPanel.setAttribute('aria-label','공식 경제지표 발표 일정 위험 점검');view.append(eventPanel);
+function showEconomicRisk(){
+ eventPanel.replaceChildren();eventPanel.append(make('h3','향후 14일 · 공식 경제 이벤트'));
+ const source=root.MYInvestEconomicCalendar,bea=root.MYInvestBeaCalendar,fed=root.MYInvestFomcSchedule,bok=root.MYInvestBokStatsCalendar,bokPolicy=root.MYInvestBokPolicySchedule,snapshot=source?.current(),beaStatus=bea?.current(),bokStatus=bok?.current();
+ if(snapshot?.status!=='ready'||beaStatus?.status!=='ready'||bokStatus?.status!=='ready')eventPanel.append(make('p','일부 공식 통계 일정(BLS·BEA·한국은행)이 미연결입니다. 표시되지 않는 발표가 있을 수 있으므로 신규 진입 전 공식 일정을 확인하세요.','str4-muted'));
+ const now=Date.now(),upcoming=[...(source?.horizon(14,now)||[]),...(bea?.horizon(14,now)||[]),...(bok?.horizon(14,now)||[])];
+ const fedDays=[...new Set([new Date(now).getUTCFullYear(),new Date(now+14*86400000).getUTCFullYear()])];
+ const eastern={};for(const p of new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date(now)))if(p.type!=='literal')eastern[p.type]=p.value;
+ const currentUSDate=eastern.year+'-'+eastern.month+'-'+eastern.day;
+ const futureUSDate=new Date(Date.parse(currentUSDate+'T00:00:00Z')+14*86400000).toISOString().slice(0,10);
+ for(const year of fedDays)for(const meeting of [...(fed?.list(year)||[]),...(bokPolicy?.list(year)||[])]){
+  // FOMC has a US Eastern date only, not a confirmed statement hour.
+  if(meeting.publisher==='BOK'){
+   const currentKR={};for(const part of new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Seoul',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date(now)))if(part.type!=='literal')currentKR[part.type]=part.value;
+   const kstDay=currentKR.year+'-'+currentKR.month+'-'+currentKR.day;
+   const endKST=new Date(Date.parse(kstDay+'T00:00:00Z')+14*86400000).toISOString().slice(0,10);
+   if(meeting.date>=kstDay&&meeting.date<=endKST)upcoming.push(meeting);
+  }else if(meeting.date>=currentUSDate&&meeting.date<=futureUSDate)upcoming.push(meeting);
+ }
+ const rows=upcoming.sort((a,b)=>(a.startsAt||a.date).localeCompare(b.startsAt||b.date)).slice(0,8);
+ if(!rows.length){eventPanel.append(make('p','연결된 공식 일정에서 향후 14일 이벤트가 확인되지 않았습니다. 각 기관의 미수집 일정은 포함되지 않을 수 있습니다.','str4-muted'));return}
+ for(const item of rows){
+  const date=item.startsAt?new Date(item.startsAt).toLocaleString('ko-KR',{timeZone:'Asia/Seoul',hour12:false}):item.date+(item.publisher==='BOK'?' (한국 회의일 · 발표시각 미확인)':' (미국 현지 날짜 · 발표시각 미확인)');
+  eventPanel.append(make('p',(item.priority==='critical'?'🔴 매우 높음':'🟠 높음')+' · '+date+' · '+item.title+' · 출처 '+item.source));
+ }
+ eventPanel.append(make('p','발표시간 전후 변동성·갭 위험을 점검하세요. 실제치·예상치 및 시장 반응은 미연결이며 매수·매도 신호를 생성하지 않습니다.','str4-muted'));
+}
+showEconomicRisk();
+Promise.allSettled([root.MYInvestEconomicCalendar?.refresh(),root.MYInvestBeaCalendar?.refresh(),root.MYInvestBokStatsCalendar?.refresh()]).then(()=>{if(active&&view?.isConnected)showEconomicRisk()});
+head=make('div',undefined,'str4-nav');view.append(head);renderHeader();selector=root.InvestWorkflow.selector({ctx,searchId:'strategyStockSearch',onSelect:selected=>{mode=selected.mode;renderHeader();void loadStrategy()}});view.append(selector.element);conditional=make('section',undefined,'str4-output workflow-conditional');view.append(conditional);const modes=make('div',undefined,'str4-modes');const checklist=make('div');for(const [value,label] of [['day','단타'],['swing','스윙']]){const b=button(label,()=>{mode=value;const selection=readSelection();if(selection){root.InvestWorkflow.select(selection.symbol,{...selection,mode});void loadStrategy()}for(const x of modes.querySelectorAll('button'))x.setAttribute('aria-pressed',String(x===b));drawChecklist()});b.dataset.mode=value;modes.append(b)}view.append(modes,checklist);
+ function drawChecklist(){earningsRedraw();for(const b of modes.querySelectorAll('button'))b.setAttribute('aria-pressed',String(b.dataset.mode===mode));checklist.replaceChildren(make('h3',mode==='day'?'단타 진입 전 점검':'스윙 진입 전 점검'));const list=make('ul');(mode==='day'?['시장 방향 및 해당 테마 당일 강도 확인','분봉·VWAP·거래량과 호가 데이터 확인 (현재 미연결)','진입·손절·목표·1회 손실한도 사전 설정','뉴스 급변·갭 리스크 및 유동성 점검']:['시장 국면과 테마 추세의 지속성 확인','일봉 MA20·MA60 및 최근 고저점 점검','실적 발표·주요 뉴스·기관 수급 확인 (현재 미연결)','2~3주 보유 가정 시 갭·오버나이트 위험 반영']).forEach(t=>list.append(make('li',t)));checklist.append(list)}drawChecklist();
  view.append(make('h3','매매계획 계산기'),make('p','모든 금액은 동일 통화 단위입니다. 예: 한국 종목은 원, 미국 종목은 달러. 조건부 계산값 또는 직접 입력값이며 실시간 주문가격이 아닙니다.','str4-muted'));const grid=make('div',undefined,'str4-grid');grid.append(field('계획 자본금','capital','1000000','any'),field('1회 허용 손실 (%)','riskPct','1','0.1'),field('최대 투자금 배분 (%)','allocation','30','1'),field('가정 진입가','entry','','any'),field('가정 손절가','stop','','any'),field('가정 목표가','target','','any'));view.append(grid);holdingPanel=make('div',undefined,'str4-output');view.append(holdingPanel);output=make('div',undefined,'str4-output');output.setAttribute('aria-live','polite');view.append(output);
  // Opt-in, offline comparison: do not change existing strategy math or holdings.
  compareDisclosure=make('details',undefined,'str4-compare-disclosure');
