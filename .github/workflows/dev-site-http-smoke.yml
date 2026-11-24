@@ -1,0 +1,46 @@
+name: Public development Pages delivery probe
+on:
+  push:
+    branches: [dev-pages]
+    paths:
+      - 'index.html'
+      - 'js/analysis-integration-panel-v1.js'
+      - 'js/cached-strategy-bridge.js'
+      - 'js/page-sectors.js'
+      - '.github/workflows/dev-site-http-smoke.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  published-assets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Confirm the public Pages build serves this release
+        shell: bash
+        run: |
+          set -euo pipefail
+          URL='https://kocoro97-corab.github.io/dashboard-v2-dev'
+          for i in 1 2 3 4 5 6; do
+            if curl --location --fail --silent --show-error --max-time 20 --retry 2 --retry-delay 3 "${URL}/index.html" -o /tmp/mi-dev-page.html; then
+              if grep -q 'dev=analysis-20261124' /tmp/mi-dev-page.html; then
+                break
+              fi
+            fi
+            if [ "$i" -eq 6 ]; then
+              echo 'FAIL: Pages is not yet serving the expected analysis release'
+              exit 1
+            fi
+            sleep 15
+          done
+          grep -q 'myinvest-v2-dev-relay.kocoro97.workers.dev' /tmp/mi-dev-page.html
+          grep -q 'Content-Security-Policy' /tmp/mi-dev-page.html
+          for FILE in js/analysis-integration-panel-v1.js js/cached-strategy-bridge.js js/page-sectors.js; do
+            curl --location --fail --silent --show-error --max-time 20 --retry 2 --retry-delay 3 "${URL}/${FILE}" -o /tmp/mi-dev-asset
+            cmp --silent "${FILE}" /tmp/mi-dev-asset || {
+              echo "FAIL: published asset differs from dev-pages: ${FILE}"
+              exit 1
+            }
+            echo "PASS: public Pages asset: ${FILE}"
+          done
+          echo 'PASS: publicly served HTML retains CSP/relay and expected scripts'
