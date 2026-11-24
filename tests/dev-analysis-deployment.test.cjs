@@ -35,10 +35,10 @@ test('all staged analytics modules exist, are syntactically valid, and load in d
  for(const file of scripts){
   const content=read(file);
   new Function(content);
-  const tag=new RegExp('<script\\s+src="'+file.replace(/[.*+?^${}()|[\]\\]/g,'\\  const tag=new RegExp('<script\\s+src="'+file.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'\\?[^"]*"\\s*><\\/script>');')+'\\?[^"]*"\\s*><\\/script>,'g');
-  const occurrences=[...html.matchAll(tag)];
-  assert.equal(occurrences.length,1,file+' script tag must exist exactly once');
-  const index=html.indexOf(occurrences[0][0]);
+   const needle='src="'+file+'?';
+   const occurrences=html.split(needle).length-1;
+   assert.equal(occurrences,1,file+' script tag must exist exactly once');
+   const index=html.indexOf(needle);
   assert.ok(index>prior,file+' must load after its required dependencies');
   prior=index;
  }
