@@ -1,0 +1,49 @@
+name: Development analytics deployment smoke
+on:
+  push:
+    branches: [dev-pages]
+    paths:
+      - 'index.html'
+      - 'js/exchange-session-proof.js'
+      - 'js/sector-rotation-*.js'
+      - 'js/sector-cache-rotation-bridge.js'
+      - 'js/stock-setup-*.js'
+      - 'js/market-regime-engine.js'
+      - 'js/analysis-integration-panel-v1.js'
+      - 'js/integrated-*.js'
+      - 'js/opportunity-review-queue.js'
+      - 'js/cached-strategy-bridge.js'
+      - 'js/page-strategy.js'
+      - 'js/page-stocks.js'
+      - 'js/page-sectors.js'
+      - 'tests/dev-analysis-deployment.test.cjs'
+      - 'tests/exchange-session-*.test.cjs'
+      - 'tests/sector-cache-rotation-bridge.test.cjs'
+      - 'tests/cached-strategy-bridge.test.cjs'
+      - 'tests/analysis-integration-panel-v1.test.cjs'
+      - '.github/workflows/dev-analysis-smoke.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate-dev-deployment:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax and dev security invariants
+        run: |
+          node --check js/page-sectors.js
+          node --check js/page-stocks.js
+          node --check js/page-strategy.js
+          node --check tests/dev-analysis-deployment.test.cjs
+          node --test tests/dev-analysis-deployment.test.cjs
+      - name: Verified cached market, sector and strategy integration
+        run: |
+          node tests/exchange-session-proof.test.cjs
+          node tests/exchange-session-integration.test.cjs
+          node tests/sector-cache-rotation-bridge.test.cjs
+          node tests/cached-strategy-bridge.test.cjs
+          node tests/analysis-integration-panel-v1.test.cjs
