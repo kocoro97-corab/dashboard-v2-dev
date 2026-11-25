@@ -21,9 +21,19 @@ jobs:
         run: |
           set -euo pipefail
           URL='https://kocoro97-corab.github.io/dashboard-v2-dev'
+          # Compare deployed cache-busting ID with the checked-in development-only
+          # marker. Hard-coded release names incorrectly fail every later publish.
+          EXPECTED=$(python3 - <<'PY'
+          import json,re
+          value=json.load(open('development-only.json'))['sourceCommit']
+          if not re.fullmatch('[0-9a-f]{40}',value):
+              raise SystemExit('Invalid development-only source marker')
+          print(value[:12])
+          PY
+          )
           for i in 1 2 3 4 5 6; do
             if curl --location --fail --silent --show-error --max-time 20 --retry 2 --retry-delay 3 "${URL}/index.html" -o /tmp/mi-dev-page.html; then
-              if grep -q 'dev=analysis-20261124' /tmp/mi-dev-page.html; then
+              if grep -Fq "dev=${EXPECTED}" /tmp/mi-dev-page.html; then
                 break
               fi
             fi
