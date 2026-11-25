@@ -1,1 +1,1 @@
-{"myinvestDevelopmentOnly": true, "authOnly": false, "publicMarketCapable": true, "nhAccountQueries": false, "storageWrites": false, "screenInspection": true, "sourceBranch": "fix/visible-first-market-20261125", "sourceCommit": "5809445341d3eb4a5ad263a37f4750b2c70d796e"}
+{"myinvestDevelopmentOnly": true, "authOnly": false, "publicMarketCapable": true, "nhAccountQueries": false, "storageWrites": false, "screenInspection": true, "sourceBranch": "fix/visible-first-data-20261125", "sourceCommit": "0261714e40ba79e30da1c895e037b698979649f6"}
