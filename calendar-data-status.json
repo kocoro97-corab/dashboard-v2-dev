@@ -1,1 +1,37 @@
-[{"file": "economic-events.json", "status": "UNAVAILABLE"}, {"file": "bea-events.json", "status": "VERIFIED", "source": "BEA", "events": 127, "retrievedAt": "2026-11-25T13:38:25.688Z"}, {"file": "bok-stats-events.json", "status": "VERIFIED", "source": "BOK", "events": 69, "retrievedAt": "2026-11-25T13:38:25.688Z"}, {"file": "earnings-events.json", "status": "VERIFIED", "source": "VERIFIED_EARNINGS", "events": 2, "retrievedAt": "2026-11-25T13:38:25.688Z"}, {"file": "policy-events.json", "status": "VERIFIED", "source": "OFFICIAL_POLICY", "events": 24, "retrievedAt": "2026-11-25T13:38:25.688Z"}]
+[
+  {
+    "file": "economic-events.json",
+    "status": "FAILED",
+    "source": "BLS",
+    "retrievedAt": null,
+    "attemptedAt": "2026-11-26T01:34:09.309663+00:00"
+  },
+  {
+    "file": "bea-events.json",
+    "status": "VERIFIED",
+    "source": "BEA",
+    "retrievedAt": "2026-11-26T01:34:05.774Z",
+    "attemptedAt": "2026-11-26T01:34:09.351089+00:00"
+  },
+  {
+    "file": "bok-stats-events.json",
+    "status": "VERIFIED",
+    "source": "BOK",
+    "retrievedAt": "2026-11-26T01:34:05.774Z",
+    "attemptedAt": "2026-11-26T01:34:09.390080+00:00"
+  },
+  {
+    "file": "earnings-events.json",
+    "status": "VERIFIED",
+    "source": "VERIFIED_EARNINGS",
+    "retrievedAt": "2026-11-26T01:34:05.774Z",
+    "attemptedAt": "2026-11-26T01:34:09.418045+00:00"
+  },
+  {
+    "file": "policy-events.json",
+    "status": "VERIFIED",
+    "source": "OFFICIAL_POLICY",
+    "retrievedAt": "2026-11-26T01:34:05.774Z",
+    "attemptedAt": "2026-11-26T01:34:09.440695+00:00"
+  }
+]
