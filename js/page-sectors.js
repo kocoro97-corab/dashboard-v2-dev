@@ -91,7 +91,7 @@ async function poolLimited(items,limit,fn){let index=0;await Promise.all(Array.f
 function create(){
  const legacy=DashboardPages.legacy({ids:['themesSection'],refresh:(ctx,force)=>ctx.sectors(force)});
  let ctxRef=null,unsubscribe=null,legacyHolder=null,view,summary,list,notice,watchArea,market='KR',period='1d',mode='day',watch=saved(),active=false,loading=false,loadError='',analytics=new Map(),analysisBusy=false,analysisError='',analysisKey='',analysisVersion=0,analysisController=null,selectionTimer=null,detailVersion=0,category='theme',industryRows=[],industryReceived=null,industryBusy=false,industryError='',marketTimer=null,manualMarket=false;
- const css='.stv2{margin-bottom:18px}.stv2-heading{display:flex;gap:8px;align-items:center;justify-content:space-between}.stv2-heading h2{margin:0;min-width:0}.stv2-heading>button{flex-shrink:0}.stv2-industry-head{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}.stv2-industry-head h3{margin:0}.stv2-mixed{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.stv2-mixed>section{background:#172238;border:1px solid #344158;border-radius:9px;padding:11px;min-width:0}.stv2-mixed button{display:block;text-align:left;width:100%;margin:6px 0}.stv2-period-label{font-size:12px;color:#b6c5d9}.stv2-toolbar{display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin:10px 0}.stv2-toolbar .stv2-tabs{margin:0}.stv2-region{padding:7px 11px;border:1px solid #72b5ff;border-radius:7px;background:#264365;color:#e7eef9}.stv2-etfs{margin-top:12px}.stv2-status p{overflow-wrap:anywhere}.stv2 button{cursor:pointer}.stv2-tabs{display:flex;flex-wrap:wrap;gap:7px;margin:10px 0}.stv2-tabs button{padding:7px 11px;border:1px solid #465775;border-radius:7px;background:#172238;color:#e7eef9}.stv2-tabs button[aria-pressed="true"]{border-color:#72b5ff;background:#264365}.stv2-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.stv2-card{padding:13px;background:#172238;border:1px solid #344158;border-radius:10px;min-width:0;color:#e7eef9}.stv2-muted{color:#b6c5d9;font-size:12px}.stv2-row{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}.stv2-row input{min-width:140px;max-width:100%}.stv2-table-scroll{width:100%;max-width:100%;overflow-x:auto;overscroll-behavior-x:contain}.stv2-table{width:100%;border-collapse:collapse}.stv2-table-scroll .stv2-table{min-width:max-content}.stv2-table td,.stv2-table th{padding:7px;border-bottom:1px solid #344158;text-align:left}.stv2-table button{color:#e7eef9;background:#264365;border:0;border-radius:5px;padding:5px}.stv2-status{padding:10px;border:1px solid #465775;border-radius:8px}.stv2-card:focus-visible{outline:2px solid #72b5ff}@media(max-width:650px){.stv2-mixed{grid-template-columns:1fr}}@media(max-width:550px){.stv2-grid{grid-template-columns:1fr}.stv2-table{font-size:12px}}';
+ const css='.stv2{margin-bottom:18px}.stv2-heading{display:flex;gap:8px;align-items:center;justify-content:space-between}.stv2-heading h2{margin:0;min-width:0}.stv2-heading>button{flex-shrink:0}.stv2-industry-head{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}.stv2-industry-head h3{margin:0}.stv2-mixed{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.stv2-mixed>section{background:#172238;border:1px solid #344158;border-radius:9px;padding:11px;min-width:0}.stv2-mixed button{display:block;text-align:left;width:100%;margin:6px 0}.stv2-period-label{font-size:12px;color:#b6c5d9}.stv2-toolbar{display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin:10px 0}.stv2-toolbar .stv2-tabs{margin:0}.stv2-mode-line{display:flex;align-items:center;gap:6px;flex-wrap:nowrap;max-width:100%;overflow-x:auto;overscroll-behavior-x:contain}.stv2-mode-line .stv2-tabs{display:flex;flex-wrap:nowrap;white-space:nowrap;flex-shrink:0}.stv2-swing-periods{display:inline-flex;flex:0 0 auto;align-items:center;gap:6px}.stv2-region{padding:7px 11px;border:1px solid #72b5ff;border-radius:7px;background:#264365;color:#e7eef9}.stv2-etfs{margin-top:12px}.stv2-status p{overflow-wrap:anywhere}.stv2 button{cursor:pointer}.stv2-tabs{display:flex;flex-wrap:wrap;gap:7px;margin:10px 0}.stv2-tabs button{padding:7px 11px;border:1px solid #465775;border-radius:7px;background:#172238;color:#e7eef9}.stv2-tabs button[aria-pressed="true"]{border-color:#72b5ff;background:#264365}.stv2-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.stv2-card{padding:13px;background:#172238;border:1px solid #344158;border-radius:10px;min-width:0;color:#e7eef9}.stv2-muted{color:#b6c5d9;font-size:12px}.stv2-row{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}.stv2-row input{min-width:140px;max-width:100%}.stv2-table-scroll{width:100%;max-width:100%;overflow-x:auto;overscroll-behavior-x:contain}.stv2-table{width:100%;border-collapse:collapse}.stv2-table-scroll .stv2-table{min-width:max-content}.stv2-table td,.stv2-table th{padding:7px;border-bottom:1px solid #344158;text-align:left}.stv2-table button{color:#e7eef9;background:#264365;border:0;border-radius:5px;padding:5px}.stv2-status{padding:10px;border:1px solid #465775;border-radius:8px}.stv2-card:focus-visible{outline:2px solid #72b5ff}@media(max-width:650px){.stv2-mixed{grid-template-columns:1fr}}@media(max-width:550px){.stv2-grid{grid-template-columns:1fr}.stv2-table{font-size:12px}}';
  function saveDisplay(){try{localStorage.setItem(UI_KEY,JSON.stringify({market:manualMarket?market:null,mode,period,category}))}catch{}}
  function restoreDisplay(){try{const state=JSON.parse(localStorage.getItem(UI_KEY)||'null');if(!state||typeof state!=='object')return;if(['KR','US','MIX'].includes(state.market)){market=state.market;manualMarket=true}if(['day','swing'].includes(state.mode))mode=state.mode;if(['theme','industry'].includes(state.category))category=state.category;period=mode==='swing'&&['5d','20d','60d'].includes(state.period)?state.period:'1d'}catch{}}
  // An obsolete selection must not block the newest one. The shared transport
@@ -113,6 +113,9 @@ function create(){
  }
  function chooseMarket(next){if(!['KR','US','MIX'].includes(next))return false;if(next!==market)supersedeAnalytics();manualMarket=true;market=next;analysisError='';saveDisplay();draw();if((next==='KR'||next==='MIX')&&category==='theme'&&!data().length)void reload();scheduleAnalytics();return false}
  function tabs(parent,options,get,set){const box=make('div',undefined,'stv2-tabs');options.forEach(([value,label])=>{const b=button(label,()=>{const next=set(value);if(next!==false)draw()});b.setAttribute('aria-pressed',String(get()===value));box.append(b)});parent.append(box)}
+ function previewReady(){
+   if(active&&market==='KR'&&category==='theme'&&period==='1d'&&mode==='day')draw();
+ }
  function data(){return typeof THM!=='undefined'&&Array.isArray(THM)?THM:[]}
  function holdings(){const codes=new Set();let snap;try{snap=ctxRef?.snapshot()}catch{return codes}if(!snap||!Array.isArray(snap.details)||!Array.isArray(snap.result?.rows)||snap.details.length!==snap.result.rows.length)return codes;for(let i=0;i<snap.details.length;i++){const d=snap.details[i],a=snap.result.rows[i],code=String(d?.code||'').trim();if(!/^\d{6}$/.test(code)||d.market!=='domestic'||d.currency!=='KRW'||d.draft||!a?.identity||a.issues?.includes('IDENTITY_UNKNOWN')||!Number.isFinite(d.quantity)||d.quantity<=0)continue;codes.add(code)}return codes}
  function themeRows(t){return Array.isArray(t.rows)?t.rows.filter(r=>r&&/^\d{6}$/.test(String(r.code))):[]}
@@ -130,7 +133,7 @@ function create(){
    const market=requestedMarket;
   if(!active||!ctxRef||!ctxRef.publicConnected?.()||analysisBusy||(market==='KR'&&loading))return;
   if(market==='KR'&&period==='1d'&&mode==='day'){if(category==='industry'&&!industryRows.length)void loadIndustries(force);return;}
-  const key=keyFor(market),viewKey=keyFor();if(!force&&analytics.has(key))return;if(force)SERIES_CACHE.clear();
+  const key=keyFor(market),viewKey=keyFor();if(!force&&analytics.has(key)&&!analytics.get(key)?.partial)return;if(force)SERIES_CACHE.clear();
   analysisBusy=true;analysisError='';analysisKey=key;const version=++analysisVersion;
   const controller=new AbortController();analysisController=controller;
   const context=Object.create(ctxRef);
@@ -142,8 +145,20 @@ function create(){
    if(base===null)throw Error('BENCHMARK_HISTORY_MISSING');
    if(!active||version!==analysisVersion||keyFor(market)!==key)return;
    const rows=[],failures=[],themes=[];
+   // Publish each independently validated sample as it completes. A partial
+   // panel is explicitly non-final and is never exported to strategy rankings.
+   function publishPartial(){
+     if(!active||version!==analysisVersion||keyFor(market)!==key)return;
+     analytics.set(key,{category,benchmarkSeries:benchmark,rows:rows.slice().sort((a,b)=>b.relative-a.relative),
+       benchmark:base,benchmarkSymbol,received:Date.now(),period,market,failures:failures.slice(),
+       themes:themes.slice().sort((a,b)=>b.relative-a.relative),asof:benchmark.last,strictRotation:null,partial:true});
+     draw();
+   }
+   publishPartial();
    if(market==='US'){
-    await poolLimited(US_SECTORS,3,async ([symbol,name])=>{try{if(!active||version!==analysisVersion||keyFor(market)!==key)return;const v=await series(context,symbol);const aligned=alignedWindow(v,benchmark,n);if(v.instrumentType!=='ETF'){failures.push({symbol,reason:'ETF_IDENTITY_MISMATCH'});return}if(aligned&&v.currency==='USD')rows.push({symbol,name,...aligned,coverage:'ETF',v});else failures.push({symbol,reason:v.bars.length<=n?'INSUFFICIENT_HISTORY':'DATE_MISMATCH'})}catch{failures.push({symbol,reason:'SERIES_UNAVAILABLE'})}});
+    // The US theme view must not download eleven sector ETF series hidden
+    // behind a collapsed reference. They remain available in industry mode.
+    if(category==='industry')await poolLimited(US_SECTORS,3,async ([symbol,name])=>{try{if(!active||version!==analysisVersion||keyFor(market)!==key)return;const v=await series(context,symbol);const aligned=alignedWindow(v,benchmark,n);if(v.instrumentType!=='ETF'){failures.push({symbol,reason:'ETF_IDENTITY_MISMATCH'});return}if(aligned&&v.currency==='USD')rows.push({symbol,name,...aligned,coverage:'ETF',v});else failures.push({symbol,reason:v.bars.length<=n?'INSUFFICIENT_HISTORY':'DATE_MISMATCH'})}catch{failures.push({symbol,reason:'SERIES_UNAVAILABLE'})}});
     const universe=category==='theme'?await usUniverse().catch(()=>{failures.push({symbol:'US_THEMES',reason:'UNIVERSE_UNAVAILABLE'});return {themes:[]}}):{themes:[]};
     await poolLimited(universe.themes,2,async t=>{
      if(!active||version!==analysisVersion||keyFor(market)!==key)return;const sample=[];
@@ -151,6 +166,7 @@ function create(){
      const quality=root.SectorInsights.sampleBreadth(sample,t.instruments.length);
       if(quality.rankable){const change=sample.reduce((a,x)=>a+x.change,0)/sample.length;themes.push({...t,sample,change,relative:change-base,asof:benchmark.last,quality})}
       else failures.push({symbol:t.id,reason:'SAMPLE_COVERAGE_INSUFFICIENT'});
+      publishPartial();
     });
    }else{
     if((typeof EXT_MASTER==='undefined'||!EXT_MASTER)&&typeof loadExternalMaster==='function')await loadExternalMaster();
@@ -166,6 +182,7 @@ function create(){
      const quality=root.SectorInsights.sampleBreadth(results,stocks.length);
      if(quality.rankable){const change=results.reduce((a,x)=>a+x.change,0)/results.length;rows.push({symbol:String(t.no),name:t.name,change,relative:change-base,asof:Math.min(...results.map(x=>x.asof)),coverage:quality.observed+'/'+quality.expected+'개 구성종목 동일가중 표본',sample:results,quality})}
      else failures.push({symbol:String(t.no),reason:'SAMPLE_COVERAGE_INSUFFICIENT'});
+     publishPartial();
     });
    }
    if(!active||version!==analysisVersion||keyFor(market)!==key)return;
@@ -174,7 +191,7 @@ function create(){
     root.MYInvestSectorCacheRotationBridge.evaluate({market,benchmark,rows,
      nowDay:root.MYInvestExchangeSessionProof?.localDay(Date.now(),'America/New_York')}):null;
    analytics.set(key,{category,benchmarkSeries:benchmark,rows:rows.sort((a,b)=>b.relative-a.relative),benchmark:base,benchmarkSymbol,received:Date.now(),period,market,failures,themes:themes.sort((a,b)=>b.relative-a.relative),asof:benchmark.last,strictRotation});
-  }catch(e){if(active&&version===analysisVersion&&keyFor()===key)analysisError='시계열 수신 또는 검증 실패 · 실제 데이터 연결 상태를 확인하세요.'}
+  }catch(e){if(active&&version===analysisVersion&&keyFor()===key)analysisError='시계열 수신 또는 검증 실패 · 일부 결과가 보이면 최종 순위가 아닙니다.'}
   finally{
    if(analysisController===controller)analysisController=null;
    if(active&&version===analysisVersion){analysisBusy=false;draw();if(keyFor()!==viewKey)void loadAnalytics()}
@@ -184,11 +201,24 @@ function create(){
   const key=keyFor(),data=analytics.get(key);
   if(market==='KR'&&category==='industry'){const titleBar=make('div',undefined,'stv2-industry-head'),refresh=button(industryBusy||analysisBusy?'갱신 중…':'국내 섹터 갱신',refreshCurrent);refresh.disabled=industryBusy||analysisBusy;titleBar.append(make('h3','국내 산업 구성종목 표본 분석'),refresh);list.append(titleBar)}
   if(analysisBusy)list.append(make('p',(analysisKey===key?'실제 일봉 데이터 분석 중…':'이전 요청 정리 후 선택 화면 자료 조회 중…')+' 다른 화면은 계속 이용할 수 있습니다.','stv2-status'));
-  if(analysisError&&!data)list.append(make('p',analysisError,'stv2-status'));
+  if(analysisError)list.append(make('p',analysisError,'stv2-status'));
+  if(data?.partial)list.append(make('p','검증된 일부 표본 먼저 표시 · 남은 시계열 조회 중/미완료 · 순위 확정 전, 투자전략 근거 미반영','stv2-status'));
   if(!data){if(!analysisBusy)list.append(button('실제 시계열 조회',()=>void loadAnalytics(true)));return}
   const n=PERIODS[period],label=market==='US'?'미국 11개 섹터 ETF 상대강도':(category==='industry'?'국내 산업 구성종목 표본 분석':'국내 상위 테마 구성종목 표본 분석');
-  if(market==='US'&&category==='theme')renderUSThemes(data);
-  const target=market==='US'&&category==='theme'?make('details',undefined,'stv2-etfs'):list;if(market==='US'&&category==='theme'){target.append(make('summary','참고: 11개 섹터 ETF 상대강도 펼치기'));list.append(target)}
+  if(market==='US'&&category==='theme'){
+   list.append(make('p','기간 '+PERIODS[period]+'거래일 · SPY 기준 '+pct(data.benchmark)+' · 공통 관측일 '+new Date(data.asof).toLocaleDateString('ko-KR')+' · 검증된 확정 종가 가격수익률 (분배금 제외)','stv2-muted'));
+   renderUSThemes(data);
+   const sectorReference=make('details',undefined,'stv2-etfs');
+   sectorReference.append(make('summary','참고: 미국 11개 섹터 ETF 상대강도는 산업 메뉴에서 요청 시 조회'));
+   sectorReference.append(make('p','현재 테마 분석에서는 숨겨진 ETF 11개를 자동 조회하지 않습니다. 필요하면 산업 분석으로 전환해 검증된 SPY 대비 섹터 ETF 상대강도를 확인하세요.','stv2-muted'),
+    button('미국 산업 ETF 분석 열기',()=>{supersedeAnalytics();category='industry';saveDisplay();draw();scheduleAnalytics()}));
+   list.append(sectorReference,make('p','개별 미국 테마 일반종목 표본은 미국 섹터 ETF 대리지표와 구분됩니다. 숨겨진 ETF를 자동 조회하지 않으며, 상세 섹터 검증은 산업 분석에서 제공합니다.','stv2-muted'));
+   if(root.DevelopmentDiagnostics){root.DevelopmentDiagnostics.quality('sectors',data.failures||[],data);if(data.failures?.length)list.append(make('p','일부 자료 제외 · 검증·진단에서 상세 확인','stv2-status'))}
+   else if(data.failures?.length)list.append(make('p','일부 자료 수신/검증 실패 · 이번 테마 표본에 포함하지 않았습니다.','stv2-status'));
+   if(mode==='swing')list.append(make('p','스윙 관찰: 상대강도와 기간 수익률만 표시. 실적·기관수급·진입/손절 검증 전 매수 추천이 아닙니다.','stv2-muted'));
+   return;
+  }
+  const target=list;
   if(!(market==='KR'&&category==='industry'))target.append(make('h3',label));target.append(make('p','기간 '+n+'거래일 · 기준 '+data.benchmarkSymbol+' '+pct(data.benchmark)+' · 수신 '+new Date(data.received).toLocaleString('ko-KR')+' · 공통 관측일 '+new Date(data.asof).toLocaleDateString('ko-KR')+' · 관측 종가 가격수익률 (배당·분배금 제외, 실시간 아님)','stv2-muted'));
   const table=make('table',undefined,'stv2-table'),head=make('tr');['섹터/테마','기간 수익률','기준 대비','데이터 범위','관측일'].forEach(x=>head.append(make('th',x)));table.append(head);
   for(const row of data.rows){const tr=make('tr');tr.append((()=>{const cell=make('td');if(market==='US'&&category==='industry')cell.append(button(row.name+' ('+row.symbol+') · ETF 대리지표',()=>root.MYInvestStockSelection?.open(row.symbol,{name:row.name,industry:row.name,source:'industry',mode,relativeStrength:row.relative,stockRelativeStrength:row.relative,stockReturn:row.change,themeReturn:row.change,themeReceivedAt:data.received,observedAt:row.asof,dataScope:'us_sector_etf',benchmark:'SPY',period})));else cell.textContent=row.name+' ('+row.symbol+')';return cell})(),make('td',pct(row.change)),make('td',pct(row.relative)),make('td',row.coverage),make('td',new Date(row.asof).toLocaleDateString('ko-KR')));table.append(tr)}
@@ -225,8 +255,8 @@ function create(){
  function renderUSThemes(data){
   list.append(make('h3','미국 일반종목 테마 · 검증 표본'),make('p','운용사 공개 구성자료의 미국 상장 일반종목 표본 · 종가 가격수익률 동일가중 · 검증된 구성종목 60% 미만은 순위 보류 · 전체 미국 시장 순위 아님','stv2-muted'));
   const cards=make('div',undefined,'stv2-grid stv2-us-themes');
-  for(const [i,t] of (data.themes||[]).entries()){const card=button('',()=>usDetail(t));card.className='stv2-card';card.style.textAlign='left';const up=t.sample.filter(x=>x.change>0).length,down=t.sample.filter(x=>x.change<0).length;card.append(make('strong',(i+1)+'위 · '+t.name),make('p',PERIODS[period]+'일 표본 수익률 '+pct(t.change)+' · SPY 대비 '+pct(t.relative)),make('p','상승 '+up+' / 하락 '+down+' · 상승비율 '+(t.quality?.breadth==null?'미확인':t.quality.breadth.toFixed(1)+'%')+' · 확인 '+t.sample.length+'/'+t.instruments.length+'종목','stv2-muted'),make('p',t.sample.slice().sort((a,b)=>b.change-a.change).slice(0,3).map(x=>root.InstrumentNames?.label(x.symbol,x.name)||x.name+' ('+x.symbol+')').join(' · '),'stv2-muted'),make('p','구성 기준 '+t.asOf+(Date.now()-Date.parse(t.asOf)>7*86400000?' · 구성자료 7일 초과, 최신성 확인 필요':'')+' · 관측 '+new Date(t.asof).toLocaleDateString('ko-KR'),'stv2-muted'));cards.append(card)}
-  list.append(cards);if(!data.themes?.length)list.append(make('p','검증된 미국 일반종목 테마 자료가 없습니다. 새로고침 후 연결 상태를 확인하세요.','stv2-status'));
+  for(const [i,t] of (data.themes||[]).entries()){const card=button('',()=>usDetail(t));card.className='stv2-card';card.style.textAlign='left';const up=t.sample.filter(x=>x.change>0).length,down=t.sample.filter(x=>x.change<0).length;card.append(make('strong',(data.partial?'잠정 '+(i+1)+'번째 · ':(i+1)+'위 · ')+t.name),make('p',PERIODS[period]+'일 표본 수익률 '+pct(t.change)+' · SPY 대비 '+pct(t.relative)),make('p','상승 '+up+' / 하락 '+down+' · 상승비율 '+(t.quality?.breadth==null?'미확인':t.quality.breadth.toFixed(1)+'%')+' · 확인 '+t.sample.length+'/'+t.instruments.length+'종목','stv2-muted'),make('p',t.sample.slice().sort((a,b)=>b.change-a.change).slice(0,3).map(x=>root.InstrumentNames?.label(x.symbol,x.name)||x.name+' ('+x.symbol+')').join(' · '),'stv2-muted'),make('p','구성 기준 '+t.asOf+(Date.now()-Date.parse(t.asOf)>7*86400000?' · 구성자료 7일 초과, 최신성 확인 필요':'')+' · 관측 '+new Date(t.asof).toLocaleDateString('ko-KR'),'stv2-muted'));cards.append(card)}
+  list.append(cards);if(!data.themes?.length)list.append(make('p',data.partial?'미국 테마의 검증된 구성종목 표본 조회 중…':'검증된 미국 일반종목 테마 자료가 없습니다. 새로고침 후 연결 상태를 확인하세요.','stv2-status'));
   list.append(make('p','순위는 표본 충족률 60% 이상인 테마 간 비교에 한정됩니다. 구성목록 기준일과 공식 출처를 확인하세요. 시세 새로고침과 구성자료 갱신은 별개이며 ETF 가격은 테마 수익률로 사용하지 않습니다.','stv2-muted'));
  }
  function usDetail(t){list.replaceChildren();list.append(button('← 테마 순위로',draw),make('h3',t.name),make('p','구성 기준 '+t.asOf+' · 일반종목 '+t.sample.length+'/'+t.instruments.length+'개 표본 · 상승비율 '+(t.quality?.breadth==null?'미확인':t.quality.breadth.toFixed(1)+'%')+' · 공통 거래일 종가의 가격수익률 (배당 제외)','stv2-muted'));
@@ -294,17 +324,18 @@ function create(){
   const scope=button(category==='theme'?'분석: 테마 → 산업':'분석: 산업 → 테마',()=>{supersedeAnalytics();category=category==='theme'?'industry':'theme';saveDisplay();draw();scheduleAnalytics()});
   scope.setAttribute('aria-label','분석 범위 전환: 현재 '+(category==='theme'?'테마':'산업'));controls.append(scope);
   tabs(controls,[['KR','한국'],['US','미국'],['MIX','한국+미국']],()=>market,chooseMarket);
-  tabs(controls,[['day','단타'],['swing','스윙']],()=>mode,v=>{
+  const modeLine=make('div',undefined,'stv2-mode-line');
+  tabs(modeLine,[['day','단타'],['swing','스윙']],()=>mode,v=>{
    if(mode!==v){supersedeAnalytics();mode=v;period=v==='swing'?'5d':'1d'}
    saveDisplay();scheduleAnalytics();
   });
-  summary.append(controls);
   if(mode==='swing'){
-   const periods=make('div',undefined,'stv2-toolbar');
-   periods.append(make('span','스윙 분석기간 ('+(PERIODS[period]||5)+'거래일):','stv2-period-label'));
+   const periods=make('div',undefined,'stv2-swing-periods');
    tabs(periods,[['5d','5일'],['20d','20일'],['60d','60일']],()=>period,v=>{if(period!==v)supersedeAnalytics();period=v;saveDisplay();scheduleAnalytics()});
-   summary.append(periods);
+   modeLine.append(periods);
   }
+  controls.append(modeLine);
+  summary.append(controls);
   const observed=market==='US'?analytics.get(keyFor())?.received:market==='MIX'?analytics.get(keyFor('US'))?.received:(category==='industry'?industryReceived:typeof THM_AT!=='undefined'?THM_AT:null),stamp=observed?new Date(observed).toLocaleString('ko-KR'):'미수신';
   summary.append(make('p','수신 기준: '+stamp+' · '+(market==='KR'?'국내 네이버 원천':market==='US'?'미국 운용사 공개 구성자료 / Yahoo 종가':'한국 네이버 / 미국 시계열 분리 수신')+' · '+(mode==='day'?'단타: 1일 관찰':'스윙: '+(PERIODS[period]||5)+'거래일 종가 분석'),'stv2-muted'));
   if(market==='MIX'){renderMixed();return}
@@ -331,7 +362,7 @@ function create(){
     return;
   }
  items.forEach((t,i)=>{const card=button('',()=>detail(t));card.className='stv2-card';card.style.textAlign='left';card.append(make('strong',(i+1)+'위 · '+t.name),make('p','당일 테마 강도 '+Math.round(t.sc)+'/100 · 등락률 '+pct(t.rate)),make('p','구성종목 '+themeRows(t).length+'개 · '+(safeNumber(t.val)===null?'거래대금 미확인':'거래대금 집계 가능'),'stv2-muted'));const m=metrics(t);card.append(make('p','상승 '+m.up+' / 하락 '+m.down+' / 보합 '+m.flat+' · 상승비율 '+(m.breadth===null?'미확인':m.breadth.toFixed(1)+'%'),'stv2-muted'));const owned=holdings(),matches=themeRows(t).filter(r=>owned.has(r.code)||watch.includes(r.code));if(matches.length)card.append(make('p','내 종목 연계: '+matches.map(r=>displayName(r.code)).join(', '),'stv2-muted'));cards.append(card)});list.append(cards,make('p','순위는 기존 수신 후보 내 상대점수이며 전체 시장의 확정 순위가 아닙니다. 순매수액·기관/외국인 수급·뉴스는 미반영입니다.','stv2-muted'))}
- function mount(container,ctx){active=true;ctxRef=ctx;manualMarket=false;market=defaultMarketAt();period='1d';mode='day';category='theme';restoreDisplay();unsubscribe=ctx.subscribe?.(()=>{if(active)draw()});view=make('section',undefined,'stv2');const style=make('style');style.textContent=css;view.append(style);summary=make('div');list=make('div');notice=make('p',undefined,'stv2-muted');watchArea=make('div');view.append(summary,notice,list);
+ function mount(container,ctx){active=true;ctxRef=ctx;manualMarket=false;market=defaultMarketAt();period='1d';mode='day';category='theme';restoreDisplay();unsubscribe=ctx.subscribe?.(()=>{if(active)draw()});root.addEventListener?.('myinvest:theme-preview',previewReady);view=make('section',undefined,'stv2');const style=make('style');style.textContent=css;view.append(style);summary=make('div');list=make('div');notice=make('p',undefined,'stv2-muted');watchArea=make('div');view.append(summary,notice,list);
  const evidenceDetails=make('details');evidenceDetails.className='stv2-event-evidence';evidenceDetails.style.margin='12px 0';
  evidenceDetails.append(make('summary','시장·산업 분석에 활용할 주요 공식 발표일 근거 펼치기'));
  const evidenceBody=make('div',undefined,'stv2-muted');evidenceBody.style.padding='10px';evidenceDetails.append(evidenceBody);view.append(evidenceDetails);
@@ -351,7 +382,13 @@ function create(){
   root.MYInvestEventContext?.refreshAll().then(()=>{if(active&&evidenceDetails.isConnected&&evidenceDetails.open)renderEvidence()}).catch(()=>{});
  });
  legacy.mount(container,ctx);const content=container.querySelector(':scope > .page-content');if(content){legacyHolder=make('div');legacyHolder.hidden=true;content.replaceWith(legacyHolder);legacyHolder.append(content)}container.prepend(view);draw();if((market==='KR'||market==='MIX')&&category==='theme'&&!data().length&&!loading&&ctx.publicConnected?.())void reload();void loadAnalytics();const checkMarket=()=>{if(!active)return;const next=defaultMarketAt();if(!manualMarket&&next!==market){supersedeAnalytics();market=next;draw();if(market==='KR'&&!data().length&&ctxRef?.publicConnected?.())void reload();scheduleAnalytics()}marketTimer=setTimeout(checkMarket,60000-Date.now()%60000+5)};marketTimer=setTimeout(checkMarket,60000-Date.now()%60000+5)}
- return {mount,refresh:async(ctx,force)=>{await legacy.refresh(ctx,force);draw();if(force)analytics.clear();void loadAnalytics(force)},unmount:()=>{active=false;supersedeAnalytics();if(marketTimer!==null){clearTimeout(marketTimer);marketTimer=null}manualMarket=false;analysisVersion++;detailVersion++;analysisBusy=false;unsubscribe?.();unsubscribe=null;ctxRef=null;view?.remove();legacy.unmount();legacyHolder?.remove();legacyHolder=null},getStatus:()=>({status:active?'ready':'unmounted',market,period,mode,category})};
+ return {mount,refresh:async(ctx,force)=>{
+   // Explicit refresh replaces any in-progress analysis; it must not silently
+   // return from the analysisBusy guard or revive an earlier partial result.
+   if(force){supersedeAnalytics();analytics.clear();SERIES_CACHE.clear()}
+   await legacy.refresh(ctx,force);
+   if(active){draw();void loadAnalytics(force)}
+  },unmount:()=>{active=false;supersedeAnalytics();if(marketTimer!==null){clearTimeout(marketTimer);marketTimer=null}manualMarket=false;analysisVersion++;detailVersion++;analysisBusy=false;root.removeEventListener?.('myinvest:theme-preview',previewReady);unsubscribe?.();unsubscribe=null;ctxRef=null;view?.remove();legacy.unmount();legacyHolder?.remove();legacyHolder=null},getStatus:()=>({status:active?'ready':'unmounted',market,period,mode,category})};
 }
 DashboardPages.register('sectors',create);
 })(window);
