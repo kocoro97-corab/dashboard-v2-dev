@@ -1,1 +1,1 @@
-{"myinvestDevelopmentOnly": true, "authOnly": false, "publicMarketCapable": true, "nhAccountQueries": false, "storageWrites": false, "screenInspection": true, "sourceBranch": "fix/verified-query-performance-20261126", "sourceCommit": "34cc071ac740b897aadaa27261e172e611894d76"}
+{"myinvestDevelopmentOnly": true, "authOnly": false, "publicMarketCapable": true, "nhAccountQueries": false, "storageWrites": false, "screenInspection": true, "sourceBranch": "feat/private-original-briefing-read-20261126", "sourceCommit": "388acca3725cb5f20f2cbecd8bc31a7ca96a9ccb"}

@@ -32,7 +32,7 @@
   }
   function isRelay(){return config().mode==='relay'}
   // Shared physical read budget. Auth and reviewed writes are never replayed.
-  const reads=new Set(['publicFetch','nhQuotes','nhExternalQuotes','nhAccounts','externalHoldings','externalHistory','externalAccounts','googleCalendarStatus','googleCalendarList','googleCalendarEvents']);
+  const reads=new Set(['publicFetch','nhQuotes','nhExternalQuotes','nhAccounts','externalHoldings','externalHistory','externalAccounts','googleCalendarStatus','googleCalendarList','googleCalendarEvents','privateMorningBriefing']);
   const waiting=[],running=new Set(),publicPending=new Map();let epoch=0,sharedEpoch=0,accountEpoch=0,completed=0,cancelled=0,pauseUntil=0,pauseTimer=null,throttleUntil=0,sharedPromotions=0,sharedJoins=0,maxQueueWaitMs=0,maxPhysicalReadMs=0;
   const readClock=()=>root.performance?.now?.()??Date.now();
   // Anonymous in-memory latency only: no URLs, tokens, account data, or payloads.
@@ -114,9 +114,21 @@
       maxQueueWaitMs,maxPhysicalReadMs};
   }
   const accountSession=c=>c?.devSession===true&&c?.persistentRelay===true&&c?.accountReads===true&&typeof LS==='function'&&LS('invest_is_admin')==='true'&&LS('invest_password_change')!==true;
+  const PRIVATE_ENDPOINT='https://myinvest-v2-private-original-preview.kocoro97.workers.dev/api';
+  function requestEndpoint(c,data,options){
+    const probe=options.privateBriefingProbe===true;
+    const privateRead=data.action==='privateMorningBriefing';
+    const ownerAuth=c.privateBriefings===true&&['login','logout'].includes(data.action);
+    if(!probe&&!privateRead&&!ownerAuth)return c.endpoint;
+    const pinned=root.MYINVEST_PRIVATE_BRIEFING_RELAY;
+    if(c.devSession!==true||c.persistentRelay!==true||c.endpoint!=='https://myinvest-v2-dev-relay.kocoro97.workers.dev/api'||pinned?.profile!=='isolated-private-original'||pinned.endpoint!==PRIVATE_ENDPOINT)throw failure('RELAY_CONFIG_INVALID');
+    if(probe&&(data.action!=='appVersion'||Object.keys(data).length!==1)||!probe&&c.privateBriefings!==true)throw failure('PRIVATE_BRIEFING_UNAVAILABLE');
+    return PRIVATE_ENDPOINT;
+  }
   function post(payload,options){
     const c=config();options=options||{};
     if(options.sessionAccountRead===true&&!(c.mode==='relay'&&payload.action==='nhAccounts'&&accountSession(c)&&typeof payload.token==='string'&&payload.token===LS('invest_session_token')))throw failure('AUTH_REQUIRED');
+    if((payload?.action==='privateMorningBriefing'||options.privateBriefingProbe===true)&&(c.mode!=='relay'||options.privateBriefingProbe===true&&payload.token!=null))throw failure('RELAY_CONFIG_INVALID');
     if(c.mode==='direct')return root.fetch(MYP(),{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payload),signal:options.signal});
     const data={...payload},headers={'Content-Type':'application/json'};
     if(c.devAccessCode!=null){
@@ -133,11 +145,11 @@
       if(typeof data.token!=='string'||!/^[a-fA-F0-9]{64}$/.test(data.token))throw failure('AUTH_REQUIRED');
       headers.Authorization='Bearer '+data.token;delete data.token;
     }
-    const queued=reads.has(data.action),endpoint=c.endpoint,generation=epoch,sharedGeneration=sharedEpoch,token=payload.token,route=root.location?.hash,access=c.devAccessCode;
+    const queued=reads.has(data.action),primaryEndpoint=c.endpoint,endpoint=requestEndpoint(c,data,options),generation=epoch,sharedGeneration=sharedEpoch,token=payload.token,route=root.location?.hash,access=c.devAccessCode;
     const sharedPublic=queued&&data.action==='publicFetch'&&options.sharedPublic===true&&c.devSession===true&&c.publicMarket===true&&['sectors','news'].includes(options.sharedTag)&&isSharedPublicUrl(data.url,options.sharedTag)&&!options.signal;
     if(options.sharedPublic===true&&!sharedPublic)throw failure('RELAY_CONFIG_INVALID');
     const accountRead=options.sessionAccountRead===true,accountGeneration=accountEpoch;
-    const current=()=>(accountRead?accountGeneration===accountEpoch&&accountSession(c):sharedPublic?sharedGeneration===sharedEpoch:generation===epoch&&route===root.location?.hash)&&c===root.MYINVEST_TRANSPORT_CONFIG&&c.endpoint===endpoint&&c.mode==='relay'&&c.devAccessCode===access&&!options.signal?.aborted&&(token==null||token===(typeof LS==='function'?LS('invest_session_token'):null));
+    const current=()=>(accountRead?accountGeneration===accountEpoch&&accountSession(c):sharedPublic?sharedGeneration===sharedEpoch:generation===epoch&&route===root.location?.hash)&&c===root.MYINVEST_TRANSPORT_CONFIG&&c.endpoint===primaryEndpoint&&c.mode==='relay'&&c.devAccessCode===access&&!options.signal?.aborted&&(token==null||token===(typeof LS==='function'?LS('invest_session_token'):null));
     const send=()=>{
       const controller=queued&&typeof root.AbortController==='function'?new root.AbortController():null;
       const timer=controller&&root.setTimeout?root.setTimeout(()=>controller.abort(),35000):null;
